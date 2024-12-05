@@ -35,5 +35,5 @@ USER lbuser
 # Expose the port the app runs on
 EXPOSE 80
 
-# Define the default command to run the application with sudo
+# Define the default command to run the application
 CMD ["python3", "lb.py"]
