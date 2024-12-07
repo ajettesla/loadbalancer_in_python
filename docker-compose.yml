@@ -12,11 +12,11 @@ services:
       - sdn_net
 
   load_balancer:
-    image: ajettesla/sdnprojectlb:1
+    image: ajettesla/sdnprojectlb:2
     ports:
       - "5000:80"
     environment:
-      BACKEND_SERVERS: "backend1:80,backend2:80"
+      BACKEND_SERVERS: "backend1:80|2,backend2:80|1"
     depends_on:
       - backend1
       - backend2
