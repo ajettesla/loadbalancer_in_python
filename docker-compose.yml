@@ -1,27 +1,26 @@
-version: '3.8'  # Ensure you're using a compatible Docker Compose version
-
 services:
   backend1:
-    image: ajettesla/sdnprojectapp:1
+    image: ajettesla/sdnprojectapp:2
     networks:
       - sdn_net
 
   backend2:
-    image: ajettesla/sdnprojectapp:1
+    image: ajettesla/sdnprojectapp:2
     networks:
       - sdn_net
 
   backend3:
-    image: ajettesla/sdnprojectapp:1
+    image: ajettesla/sdnprojectapp:2
     networks:
       - sdn_net
 
   load_balancer:
-    image: ajettesla/sdnprojectlb:2
+    image: ajettesla/sdnprojectlb:3
     ports:
       - "5000:80"
     environment:
-      BACKEND_SERVERS: "backend1:80|4,backend2:80|1,backend3:80|1"
+      BACKEND_SERVERS: "backend1:80|1,backend2:80|1,backend3:80|1"
+      LOAD_SENSITIVITY: "false"
     depends_on:
       - backend1
       - backend2

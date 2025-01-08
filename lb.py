@@ -52,6 +52,36 @@ def parse_backend_servers(backend_servers_env):
 
     return backend_servers, weights
 
+def query_server_loads(servers):
+    """
+    Query each server for its current load and return a list of adjusted weights.
+    Assumes each server has an endpoint '/load' that returns the load as a JSON object.
+    Example response: {"load": 0.5} (where 0.5 means 50% load)
+    """
+    loads = []
+    for server in servers:
+        try:
+            response = requests.get(f"{server}/load", timeout=2)
+            response.raise_for_status()
+            load_data = response.json()
+            load = load_data.get("load", 1.0)
+            loads.append(load)
+            logging.info(f"Server {server} reported load: {load}")
+        except requests.exceptions.RequestException as e:
+            logging.warning(f"Could not retrieve load from {server}: {e}")
+            loads.append(1.0)  # Default to maximum load if server is unresponsive
+    return loads
+
+def adjust_weights_based_on_load(loads, original_weights):
+    """
+    Adjust weights based on server loads. Higher load results in lower weight.
+    """
+    adjusted_weights = []
+    for load, original_weight in zip(loads, original_weights):
+        adjusted_weight = max(0.01, original_weight / (1 + load))  # Prevent weight from being zero
+        adjusted_weights.append(adjusted_weight)
+    return adjusted_weights
+
 # Loop until BACKEND_SERVERS is set
 BACKEND_SERVERS_ENV = None
 while not BACKEND_SERVERS_ENV:
@@ -67,8 +97,18 @@ if not BACKEND_SERVERS:
     logging.error("No valid backend servers found in 'BACKEND_SERVERS' environment variable.")
     raise ValueError("No valid backend servers found in 'BACKEND_SERVERS' environment variable.")
 
+# Check if load sensitivity is enabled
+LOAD_SENSITIVE = os.getenv('LOAD_SENSITIVE', 'false').lower() == 'true'
+
 class LoadBalancerHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        global BACKEND_WEIGHTS
+
+        if LOAD_SENSITIVE:
+            # Query server loads and adjust weights
+            loads = query_server_loads(BACKEND_SERVERS)
+            BACKEND_WEIGHTS = adjust_weights_based_on_load(loads, BACKEND_WEIGHTS)
+
         # Select a backend server based on weights
         target_server = random.choices(BACKEND_SERVERS, weights=BACKEND_WEIGHTS, k=1)[0]
         logging.info(f"Forwarding request {self.path} to {target_server}")

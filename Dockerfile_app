@@ -5,7 +5,7 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-RUN  pip install --upgrade pip
+RUN pip install --upgrade pip
 
 # Set the working directory in the container
 WORKDIR /app
@@ -15,18 +15,20 @@ COPY . .
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code
-
 # Add a non-root user for security
 RUN addgroup --system appgroup && adduser --system appuser --ingroup appgroup
+
+# Set ownership of the /app directory to appuser
 RUN chown -R appuser:appgroup /app
 
+# Grant execute permissions to the application files (optional but recommended)
+RUN chmod -R 755 /app
+
 # Switch to the non-root user
-USER app
+USER appuser
 
 # Expose the port the app runs on
 EXPOSE 80
 
 # Define the default command to run the application
 CMD ["python3", "app.py"]
-
